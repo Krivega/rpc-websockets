@@ -122,18 +122,20 @@ declare class CommonClient extends EventEmitter {
    * Subscribes for a defined event.
    * @method
    * @param {String|Array} event - event name
+   * @param {Object} params - optional additional parameters
    * @return {Undefined}
    * @throws {Error}
    */
-    subscribe(event: string | Array<string>): Promise<unknown>;
+    subscribe(event: string | Array<string>, params?: IWSRequestParams): Promise<unknown>;
     /**
    * Unsubscribes from a defined event.
    * @method
    * @param {String|Array} event - event name
+   * @param {Object} params - optional additional parameters
    * @return {Undefined}
    * @throws {Error}
    */
-    unsubscribe(event: string | Array<string>): Promise<unknown>;
+    unsubscribe(event: string | Array<string>, params?: IWSRequestParams): Promise<unknown>;
     /**
    * Closes a WebSocket connection gracefully.
    * @method

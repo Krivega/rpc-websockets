@@ -179,12 +179,14 @@ var CommonClient = class extends eventemitter3.EventEmitter {
   * Subscribes for a defined event.
   * @method
   * @param {String|Array} event - event name
+  * @param {Object} params - optional additional parameters
   * @return {Undefined}
   * @throws {Error}
   */
-  async subscribe(event) {
+  async subscribe(event, params) {
     if (typeof event === "string") event = [event];
-    const result = await this.call("rpc.on", event);
+    const requestParams = params ? { events: event, ...params } : event;
+    const result = await this.call("rpc.on", requestParams);
     if (typeof event === "string" && result[event] !== "ok")
       throw new Error(
         "Failed subscribing to an event '" + event + "' with: " + result[event]
@@ -195,12 +197,14 @@ var CommonClient = class extends eventemitter3.EventEmitter {
   * Unsubscribes from a defined event.
   * @method
   * @param {String|Array} event - event name
+  * @param {Object} params - optional additional parameters
   * @return {Undefined}
   * @throws {Error}
   */
-  async unsubscribe(event) {
+  async unsubscribe(event, params) {
     if (typeof event === "string") event = [event];
-    const result = await this.call("rpc.off", event);
+    const requestParams = params ? { events: event, ...params } : event;
+    const result = await this.call("rpc.off", requestParams);
     if (typeof event === "string" && result[event] !== "ok")
       throw new Error("Failed unsubscribing from an event with: " + result);
     return result;
@@ -716,7 +720,19 @@ var Server = class extends eventemitter3.EventEmitter {
         };
       const results = {};
       const event_names = Object.keys(this.namespaces[ns].events);
-      for (const name of message.params) {
+      let eventsToSubscribe;
+      if (Array.isArray(message.params)) {
+        eventsToSubscribe = message.params;
+      } else if (message.params && Array.isArray(message.params.events)) {
+        eventsToSubscribe = message.params.events;
+      } else {
+        return {
+          jsonrpc: "2.0",
+          error: createError(-32602, "Invalid params format"),
+          id: message.id || null
+        };
+      }
+      for (const name of eventsToSubscribe) {
         const index = event_names.indexOf(name);
         const namespace = this.namespaces[ns];
         if (index === -1) {
@@ -751,7 +767,19 @@ var Server = class extends eventemitter3.EventEmitter {
           id: message.id || null
         };
       const results = {};
-      for (const name of message.params) {
+      let eventsToUnsubscribe;
+      if (Array.isArray(message.params)) {
+        eventsToUnsubscribe = message.params;
+      } else if (message.params && Array.isArray(message.params.events)) {
+        eventsToUnsubscribe = message.params.events;
+      } else {
+        return {
+          jsonrpc: "2.0",
+          error: createError(-32602, "Invalid params format"),
+          id: message.id || null
+        };
+      }
+      for (const name of eventsToUnsubscribe) {
         if (!this.namespaces[ns].events[name]) {
           results[name] = "provided event invalid";
           continue;

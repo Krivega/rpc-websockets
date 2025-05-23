@@ -353,7 +353,7 @@ describe("Server", function()
 
                 inst.register("sqrt_protected", function(param, socket_id)
                 {
-                    if(auth_id !== socket_id) throw "Socket ID does not match!";
+                    if (auth_id !== socket_id) throw "Socket ID does not match!"
                     return Math.sqrt(param)
                 }).protected()
 
@@ -400,7 +400,6 @@ describe("Server", function()
 
                 inst.event("newMail")
                 inst.event("updatedNews")
-
 
                 done()
             })
@@ -1112,6 +1111,78 @@ describe("Server", function()
                 })
             })
 
+            it("should subscribe to an event with additional parameters using new format", function(done)
+            {
+                connect(port, host).then(function(ws)
+                {
+                    ws.send(JSON.stringify({
+                        id: ++rpc_id,
+                        jsonrpc: "2.0",
+                        method: "rpc.on",
+                        params: {
+                            events: ["newMail"],
+                            userId: 12345,
+                            category: "technology"
+                        }
+                    }))
+
+                    ws.on("message", function(message)
+                    {
+                        message = JSON.parse(message)
+
+                        message.id.should.equal(rpc_id)
+                        message.result.newMail.should.equal("ok")
+
+                        rpc_id++
+                        ws.close()
+                        done()
+                    })
+
+                    ws.once("error", function(error)
+                    {
+                        done(error)
+                    })
+                })
+            })
+
+            it("should subscribe to multiple events with additional parameters using new format", function(done)
+            {
+                connect(port, host).then(function(ws)
+                {
+                    ws.send(JSON.stringify({
+                        id: ++rpc_id,
+                        jsonrpc: "2.0",
+                        method: "rpc.on",
+                        params: {
+                            events: ["newMail", "updatedNews"],
+                            userId: 12345,
+                            region: "europe",
+                            priority: "high"
+                        }
+                    }))
+
+                    ws.on("message", function(message)
+                    {
+                        message = JSON.parse(message)
+
+                        message.id.should.equal(rpc_id)
+                        message.result.should.have.property("newMail")
+                        message.result.should.have.property("updatedNews")
+                        message.result.newMail.should.equal("ok")
+                        message.result.updatedNews.should.equal("ok")
+
+                        rpc_id++
+                        ws.close()
+                        done()
+                    })
+
+                    ws.once("error", function(error)
+                    {
+                        done(error)
+                    })
+                })
+            })
+
             it("should unsubscribe a user from an event", function(done)
             {
                 connect(port, host).then(function(ws)
@@ -1138,6 +1209,264 @@ describe("Server", function()
                                 jsonrpc: "2.0",
                                 method: "rpc.off",
                                 params: ["newMail"]
+                            }))
+                        }
+
+                        message.id.should.equal(rpc_id)
+                        message.result.newMail.should.equal("ok")
+
+                        rpc_id++
+                        ws.close()
+                        done()
+                    })
+
+                    ws.once("error", function(error)
+                    {
+                        done(error)
+                    })
+                })
+            })
+
+            it("should unsubscribe from multiple events with additional parameters using new format", function(done)
+            {
+                connect(port, host).then(function(ws)
+                {
+                    // Сначала подписываемся на несколько событий
+                    ws.send(JSON.stringify({
+                        id: ++rpc_id,
+                        jsonrpc: "2.0",
+                        method: "rpc.on",
+                        params: ["newMail", "updatedNews"]
+                    }))
+
+                    let subscribed = false
+
+                    ws.on("message", function(message)
+                    {
+                        message = JSON.parse(message)
+
+                        if (message.result && message.result.newMail === "ok" && subscribed === false)
+                        {
+                            subscribed = true
+
+                            // Теперь отписываемся от нескольких событий с дополнительными параметрами
+                            return ws.send(JSON.stringify({
+                                id: ++rpc_id,
+                                jsonrpc: "2.0",
+                                method: "rpc.off",
+                                params: {
+                                    events: ["newMail", "updatedNews"],
+                                    userId: 12345,
+                                    region: "europe",
+                                    reason: "bulk_unsubscribe"
+                                }
+                            }))
+                        }
+
+                        if (message.result && message.result.newMail && message.result.updatedNews)
+                        {
+                            message.id.should.equal(rpc_id)
+                            message.result.newMail.should.equal("ok")
+                            message.result.updatedNews.should.equal("ok")
+
+                            rpc_id++
+                            ws.close()
+                            done()
+                        }
+                    })
+
+                    ws.once("error", function(error)
+                    {
+                        done(error)
+                    })
+                })
+            })
+
+            it("should respond with error for invalid params format in rpc.on", function(done)
+            {
+                connect(port, host).then(function(ws)
+                {
+                    ws.send(JSON.stringify({
+                        id: ++rpc_id,
+                        jsonrpc: "2.0",
+                        method: "rpc.on",
+                        params: {
+                            // Отсутствует поле events
+                            userId: 12345,
+                            category: "technology"
+                        }
+                    }))
+
+                    ws.on("message", function(message)
+                    {
+                        message = JSON.parse(message)
+
+                        message.id.should.equal(rpc_id)
+                        message.error.code.should.equal(-32602)
+                        message.error.message.should.equal("Invalid params")
+
+                        rpc_id++
+                        ws.close()
+                        done()
+                    })
+
+                    ws.once("error", function(error)
+                    {
+                        done(error)
+                    })
+                })
+            })
+
+            it("should respond with error for invalid params format in rpc.off", function(done)
+            {
+                connect(port, host).then(function(ws)
+                {
+                    ws.send(JSON.stringify({
+                        id: ++rpc_id,
+                        jsonrpc: "2.0",
+                        method: "rpc.off",
+                        params: {
+                            // Отсутствует поле events
+                            userId: 12345,
+                            reason: "test"
+                        }
+                    }))
+
+                    ws.on("message", function(message)
+                    {
+                        message = JSON.parse(message)
+
+                        message.id.should.equal(rpc_id)
+                        message.error.code.should.equal(-32602)
+                        message.error.message.should.equal("Invalid params")
+
+                        rpc_id++
+                        ws.close()
+                        done()
+                    })
+
+                    ws.once("error", function(error)
+                    {
+                        done(error)
+                    })
+                })
+            })
+
+            it("should maintain backward compatibility for rpc.on with array format", function(done)
+            {
+                connect(port, host).then(function(ws)
+                {
+                    ws.send(JSON.stringify({
+                        id: ++rpc_id,
+                        jsonrpc: "2.0",
+                        method: "rpc.on",
+                        params: ["newMail", "updatedNews"]
+                    }))
+
+                    ws.on("message", function(message)
+                    {
+                        message = JSON.parse(message)
+
+                        message.id.should.equal(rpc_id)
+                        message.result.should.have.property("newMail")
+                        message.result.should.have.property("updatedNews")
+                        message.result.newMail.should.equal("ok")
+                        message.result.updatedNews.should.equal("ok")
+
+                        rpc_id++
+                        ws.close()
+                        done()
+                    })
+
+                    ws.once("error", function(error)
+                    {
+                        done(error)
+                    })
+                })
+            })
+
+            it("should maintain backward compatibility for rpc.off with array format", function(done)
+            {
+                connect(port, host).then(function(ws)
+                {
+                    // Сначала подписываемся
+                    ws.send(JSON.stringify({
+                        id: ++rpc_id,
+                        jsonrpc: "2.0",
+                        method: "rpc.on",
+                        params: ["newMail", "updatedNews"]
+                    }))
+
+                    let subscribed = false
+
+                    ws.on("message", function(message)
+                    {
+                        message = JSON.parse(message)
+
+                        if (message.result && message.result.newMail === "ok" && subscribed === false)
+                        {
+                            subscribed = true
+
+                            // Отписываемся используя старый формат
+                            return ws.send(JSON.stringify({
+                                id: ++rpc_id,
+                                jsonrpc: "2.0",
+                                method: "rpc.off",
+                                params: ["newMail", "updatedNews"]
+                            }))
+                        }
+
+                        if (message.result && message.result.newMail && message.result.updatedNews)
+                        {
+                            message.id.should.equal(rpc_id)
+                            message.result.newMail.should.equal("ok")
+                            message.result.updatedNews.should.equal("ok")
+
+                            rpc_id++
+                            ws.close()
+                            done()
+                        }
+                    })
+
+                    ws.once("error", function(error)
+                    {
+                        done(error)
+                    })
+                })
+            })
+
+            it("should unsubscribe from an event with additional parameters using new format", function(done)
+            {
+                connect(port, host).then(function(ws)
+                {
+                    // Сначала подписываемся
+                    ws.send(JSON.stringify({
+                        id: ++rpc_id,
+                        jsonrpc: "2.0",
+                        method: "rpc.on",
+                        params: ["newMail"]
+                    }))
+
+                    let subscribed = false
+
+                    ws.on("message", function(message)
+                    {
+                        message = JSON.parse(message)
+
+                        if (message.result.newMail === "ok" && subscribed === false)
+                        {
+                            subscribed = true
+
+                            // Теперь отписываемся с дополнительными параметрами
+                            return ws.send(JSON.stringify({
+                                id: ++rpc_id,
+                                jsonrpc: "2.0",
+                                method: "rpc.off",
+                                params: {
+                                    events: ["newMail"],
+                                    userId: 12345,
+                                    reason: "user_logout"
+                                }
                             }))
                         }
 

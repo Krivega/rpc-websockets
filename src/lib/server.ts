@@ -620,10 +620,29 @@ export class Server extends EventEmitter
                 }
 
             const results: IRPCMethodParams = {}
-
             const event_names = Object.keys(this.namespaces[ns].events)
 
-            for (const name of message.params)
+            // Поддержка обратной совместимости: если параметры - массив, используем старый формат
+            // Если параметры - объект с полем events, используем новый формат
+            let eventsToSubscribe: string[]
+            if (Array.isArray(message.params))
+            {
+                eventsToSubscribe = message.params
+            }
+            else if (message.params && Array.isArray(message.params.events))
+            {
+                eventsToSubscribe = message.params.events
+            }
+            else
+            {
+                return {
+                    jsonrpc: "2.0",
+                    error: createError(-32602, "Invalid params format"),
+                    id: message.id || null,
+                }
+            }
+
+            for (const name of eventsToSubscribe)
             {
                 const index = event_names.indexOf(name)
                 const namespace = this.namespaces[ns]
@@ -676,7 +695,27 @@ export class Server extends EventEmitter
 
             const results: IRPCResult = {}
 
-            for (const name of message.params)
+            // Поддержка обратной совместимости: если параметры - массив, используем старый формат
+            // Если параметры - объект с полем events, используем новый формат
+            let eventsToUnsubscribe: string[]
+            if (Array.isArray(message.params))
+            {
+                eventsToUnsubscribe = message.params
+            }
+            else if (message.params && Array.isArray(message.params.events))
+            {
+                eventsToUnsubscribe = message.params.events
+            }
+            else
+            {
+                return {
+                    jsonrpc: "2.0",
+                    error: createError(-32602, "Invalid params format"),
+                    id: message.id || null,
+                }
+            }
+
+            for (const name of eventsToUnsubscribe)
             {
                 if (!this.namespaces[ns].events[name])
                 {

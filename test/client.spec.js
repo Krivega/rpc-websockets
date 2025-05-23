@@ -73,6 +73,12 @@ describe("Client", function()
                 server.event("newMessage", "/chat")
                 server.event("chatMessage", "/chat")
 
+                // События для тестирования дополнительных параметров
+                server.event("testUpdate")
+                server.event("eventA")
+                server.event("eventB")
+                server.event("backwardCompatTest")
+
                 done()
             })
     })
@@ -161,7 +167,8 @@ describe("Client", function()
         it("should call an RPC method with string id and receive a valid response", function(done)
         {
             let count = 1
-            const client = new WebSocket("ws://" + host + ":" + port, {}, (method) => {
+            const client = new WebSocket("ws://" + host + ":" + port, {}, (method) =>
+            {
                 count = count + 1
                 return `${method}-${count}`
             })
@@ -190,7 +197,7 @@ describe("Client", function()
                 const both = Promise.all([
                     client.call("greet"),
                     client.call("sum", [5, 3])
-                ]);
+                ])
 
                 both.then(function(response)
                 {
@@ -525,6 +532,49 @@ describe("Client", function()
                 done()
             })
         })
+
+        it("should subscribe to an event with additional parameters", function(done)
+        {
+            client.subscribe("testUpdate", { userId: 12345, category: "technology" }).then(function(data)
+            {
+                data.should.have.property("testUpdate")
+                data.testUpdate.should.equal("ok")
+                done()
+            }).catch(function(error)
+            {
+                done(error)
+            })
+        })
+
+        it("should subscribe to multiple events with additional parameters", function(done)
+        {
+            client.subscribe(["eventA", "eventB"], {
+                userId: 12345,
+                region: "europe",
+                priority: "high"
+            }).then(function(data)
+            {
+                data.should.have.property("eventA")
+                data.should.have.property("eventB")
+                done()
+            }).catch(function(error)
+            {
+                done(error)
+            })
+        })
+
+        it("should maintain backward compatibility when no additional parameters provided", function(done)
+        {
+            client.subscribe("backwardCompatTest").then(function(data)
+            {
+                data.should.have.property("backwardCompatTest")
+                data.backwardCompatTest.should.equal("ok")
+                done()
+            }).catch(function(error)
+            {
+                done(error)
+            })
+        })
     })
 
     describe(".unsubscribe", function()
@@ -582,6 +632,58 @@ describe("Client", function()
             {
                 error.code.should.equal(-32000)
                 error.message.should.equal("Event not provided")
+            })
+        })
+
+        it("should unsubscribe from an event with additional parameters", function(done)
+        {
+            client.subscribe("newsUpdate").then(function()
+            {
+                client.unsubscribe("newsUpdate", { userId: 12345, category: "technology" }).then(function(data)
+                {
+                    data.should.have.property("newsUpdate")
+                    data.newsUpdate.should.equal("ok")
+                    done()
+                })
+            }).catch(function(error)
+            {
+                done(error)
+            })
+        })
+
+        it("should unsubscribe from multiple events with additional parameters", function(done)
+        {
+            client.subscribe(["newsUpdate", "orderUpdate"]).then(function()
+            {
+                client.unsubscribe(["newsUpdate", "orderUpdate"], {
+                    userId: 12345,
+                    region: "europe",
+                    reason: "user_logout"
+                }).then(function(data)
+                {
+                    data.should.have.property("newsUpdate")
+                    data.newsUpdate.should.equal("ok")
+                    done()
+                })
+            }).catch(function(error)
+            {
+                done(error)
+            })
+        })
+
+        it("should maintain backward compatibility for unsubscribe when no additional parameters provided", function(done)
+        {
+            client.subscribe("newsUpdate").then(function()
+            {
+                client.unsubscribe("newsUpdate").then(function(data)
+                {
+                    data.should.have.property("newsUpdate")
+                    data.newsUpdate.should.equal("ok")
+                    done()
+                })
+            }).catch(function(error)
+            {
+                done(error)
             })
         })
     })
@@ -643,7 +745,9 @@ describe("Client", function()
                 if (received)
                 {
                     done(new Error("should not receive the event as didn't subscribed"))
-                } else {
+                }
+                else
+                {
                     done()
                 }
             }, 500)
@@ -666,7 +770,7 @@ describe("Client", function()
                 done(error)
             })
         })
-        
+
         it("should receive params from an event correctly", function(done)
         {
             const ns = server.of("/test")

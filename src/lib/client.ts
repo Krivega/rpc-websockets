@@ -6,13 +6,13 @@
 
 "use strict"
 
-import NodeWebSocket from "ws"
 import { EventEmitter } from "eventemitter3"
+import NodeWebSocket from "ws"
 import {
     ICommonWebSocket,
+    ICommonWebSocketFactory,
     IWSClientAdditionalOptions,
     NodeWebSocketType,
-    ICommonWebSocketFactory,
 } from "./client/client.types.js"
 
 import { DataPack, DefaultDataPack } from "./utils.js"
@@ -245,14 +245,20 @@ export class CommonClient extends EventEmitter
    * Subscribes for a defined event.
    * @method
    * @param {String|Array} event - event name
+   * @param {Object} params - optional additional parameters
    * @return {Undefined}
    * @throws {Error}
    */
-    async subscribe(event: string | Array<string>)
+    async subscribe(event: string | Array<string>, params?: IWSRequestParams)
     {
         if (typeof event === "string") event = [event]
 
-        const result = await this.call("rpc.on", event)
+        // Если есть дополнительные параметры, создаем объект с событиями и параметрами
+        const requestParams = params
+            ? { events: event, ...params }
+            : event
+
+        const result = await this.call("rpc.on", requestParams)
 
         if (typeof event === "string" && result[event] !== "ok")
             throw new Error(
@@ -266,14 +272,20 @@ export class CommonClient extends EventEmitter
    * Unsubscribes from a defined event.
    * @method
    * @param {String|Array} event - event name
+   * @param {Object} params - optional additional parameters
    * @return {Undefined}
    * @throws {Error}
    */
-    async unsubscribe(event: string | Array<string>)
+    async unsubscribe(event: string | Array<string>, params?: IWSRequestParams)
     {
         if (typeof event === "string") event = [event]
 
-        const result = await this.call("rpc.off", event)
+        // Если есть дополнительные параметры, создаем объект с событиями и параметрами
+        const requestParams = params
+            ? { events: event, ...params }
+            : event
+
+        const result = await this.call("rpc.off", requestParams)
 
         if (typeof event === "string" && result[event] !== "ok")
             throw new Error("Failed unsubscribing from an event with: " + result)

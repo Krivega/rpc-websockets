@@ -221,12 +221,14 @@ var CommonClient = class extends EventEmitter {
   * Subscribes for a defined event.
   * @method
   * @param {String|Array} event - event name
+  * @param {Object} params - optional additional parameters
   * @return {Undefined}
   * @throws {Error}
   */
-  async subscribe(event) {
+  async subscribe(event, params) {
     if (typeof event === "string") event = [event];
-    const result = await this.call("rpc.on", event);
+    const requestParams = params ? { events: event, ...params } : event;
+    const result = await this.call("rpc.on", requestParams);
     if (typeof event === "string" && result[event] !== "ok")
       throw new Error(
         "Failed subscribing to an event '" + event + "' with: " + result[event]
@@ -237,12 +239,14 @@ var CommonClient = class extends EventEmitter {
   * Unsubscribes from a defined event.
   * @method
   * @param {String|Array} event - event name
+  * @param {Object} params - optional additional parameters
   * @return {Undefined}
   * @throws {Error}
   */
-  async unsubscribe(event) {
+  async unsubscribe(event, params) {
     if (typeof event === "string") event = [event];
-    const result = await this.call("rpc.off", event);
+    const requestParams = params ? { events: event, ...params } : event;
+    const result = await this.call("rpc.off", requestParams);
     if (typeof event === "string" && result[event] !== "ok")
       throw new Error("Failed unsubscribing from an event with: " + result);
     return result;
