@@ -1,6 +1,6 @@
 import WebSocketImpl, { WebSocketServer } from 'ws';
 import { EventEmitter } from 'eventemitter3';
-import url from 'node:url';
+import url from 'url';
 import { v1 } from 'uuid';
 
 // src/lib/client/websocket.ts
