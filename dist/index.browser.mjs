@@ -7,13 +7,12 @@ var WebSocketBrowserImpl = class extends EventEmitter {
   /** Instantiate a WebSocket class
   * @constructor
   * @param {String} address - url to a websocket server
-  * @param {(Object)} options - websocket options
-  * @param {(String|Array)} protocols - a list of protocols
+  * @param {WebSocketBrowserOptions} options - websocket options
   * @return {WebSocketBrowserImpl} - returns a WebSocket instance
   */
-  constructor(address, options, protocols) {
+  constructor(address, options) {
     super();
-    this.socket = new window.WebSocket(address, protocols);
+    this.socket = new window.WebSocket(address, options.protocols);
     this.socket.onopen = () => this.emit("open");
     this.socket.onmessage = (event) => this.emit("message", event.data);
     this.socket.onerror = (error) => this.emit("error", error);
@@ -259,7 +258,7 @@ var CommonClient = class extends EventEmitter {
   * @return {Undefined}
   */
   close(code, data) {
-    this.socket.close(code || 1e3, data);
+    if (this.socket) this.socket.close(code || 1e3, data);
   }
   /**
   * Enable / disable automatic reconnection.
@@ -289,6 +288,38 @@ var CommonClient = class extends EventEmitter {
     this.max_reconnects = max_reconnects;
   }
   /**
+  * Get the current number of reconnection attempts made.
+  * @method
+  * @return {Number} current reconnection attempts
+  */
+  getCurrentReconnects() {
+    return this.current_reconnects;
+  }
+  /**
+  * Get the maximum number of reconnection attempts.
+  * @method
+  * @return {Number} maximum reconnection attempts
+  */
+  getMaxReconnects() {
+    return this.max_reconnects;
+  }
+  /**
+  * Check if the client is currently attempting to reconnect.
+  * @method
+  * @return {Boolean} true if reconnection is in progress
+  */
+  isReconnecting() {
+    return this.reconnect_timer_id !== void 0;
+  }
+  /**
+  * Check if the client will attempt to reconnect on the next close event.
+  * @method
+  * @return {Boolean} true if reconnection will be attempted
+  */
+  willReconnect() {
+    return this.reconnect && (this.max_reconnects === 0 || this.current_reconnects < this.max_reconnects);
+  }
+  /**
   * Connection/Message handler.
   * @method
   * @private
@@ -309,7 +340,7 @@ var CommonClient = class extends EventEmitter {
         message = Buffer.from(message).toString();
       try {
         message = this.dataPack.decode(message);
-      } catch (error) {
+      } catch (_error) {
         return;
       }
       if (message.notification && this.listeners(message.notification).length) {
@@ -357,6 +388,9 @@ var CommonClient = class extends EventEmitter {
           () => this._connect(address, options),
           this.reconnect_interval
         );
+      else if (this.reconnect && this.max_reconnects > 0 && this.current_reconnects >= this.max_reconnects) {
+        setTimeout(() => this.emit("max_reconnects_reached", code, reason), 1);
+      }
     });
   }
 };
@@ -367,7 +401,8 @@ var Client = class extends CommonClient {
     autoconnect = true,
     reconnect = true,
     reconnect_interval = 1e3,
-    max_reconnects = 5
+    max_reconnects = 5,
+    ...rest_options
   } = {}, generate_request_id) {
     super(
       WebSocket,
@@ -376,7 +411,8 @@ var Client = class extends CommonClient {
         autoconnect,
         reconnect,
         reconnect_interval,
-        max_reconnects
+        max_reconnects,
+        ...rest_options
       },
       generate_request_id
     );

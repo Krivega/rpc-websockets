@@ -166,6 +166,30 @@ declare class CommonClient extends EventEmitter {
    */
     setMaxReconnects(max_reconnects: number): void;
     /**
+   * Get the current number of reconnection attempts made.
+   * @method
+   * @return {Number} current reconnection attempts
+   */
+    getCurrentReconnects(): number;
+    /**
+   * Get the maximum number of reconnection attempts.
+   * @method
+   * @return {Number} maximum reconnection attempts
+   */
+    getMaxReconnects(): number;
+    /**
+   * Check if the client is currently attempting to reconnect.
+   * @method
+   * @return {Boolean} true if reconnection is in progress
+   */
+    isReconnecting(): boolean;
+    /**
+   * Check if the client will attempt to reconnect on the next close event.
+   * @method
+   * @return {Boolean} true if reconnection will be attempted
+   */
+    willReconnect(): boolean;
+    /**
    * Connection/Message handler.
    * @method
    * @private
@@ -410,8 +434,21 @@ declare class Server extends EventEmitter {
  */
 declare function createError(code: number, details?: string): IRPCError;
 
+/**
+ * WebSocket implements a browser-side WebSocket specification.
+ * @module Client
+ */
+
+type WebSocketBrowserOptions = {
+    /**
+     * One or more protocols passed to the websocket constructor
+     * @link https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/WebSocket
+     */
+    protocols?: string | string[];
+};
+
 declare class Client extends CommonClient {
     constructor(address?: string, { autoconnect, reconnect, reconnect_interval, max_reconnects, ...rest_options }?: IWSClientAdditionalOptions & NodeWebSocketTypeOptions, generate_request_id?: (method: string, params: object | Array<any>) => number | string);
 }
 
-export { type BrowserWebSocketType, Client, CommonClient, type DataPack, DefaultDataPack, type ICommonWebSocket, type ICommonWebSocketFactory, type IQueue, type IWSClientAdditionalOptions, type IWSRequestParams, type NodeWebSocketType, type NodeWebSocketTypeOptions, Server, WebSocket$1 as WebSocket, createError };
+export { type BrowserWebSocketType, Client, CommonClient, type DataPack, DefaultDataPack, type ICommonWebSocket, type ICommonWebSocketFactory, type IQueue, type IWSClientAdditionalOptions, type IWSRequestParams, type NodeWebSocketType, type NodeWebSocketTypeOptions, Server, WebSocket$1 as WebSocket, type WebSocketBrowserOptions, createError };

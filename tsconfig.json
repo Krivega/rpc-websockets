@@ -4,11 +4,12 @@
         "allowSyntheticDefaultImports": true,
         "allowUnreachableCode": false,
         "esModuleInterop": true,
+        "lib": ["ESNext", "ESNext.Disposable", "DOM"],
         "module": "CommonJS",
         "moduleResolution": "node",
         "noEmit": true,
         "noImplicitAny": true,
-        "target": "ESNext",
+        "target": "ESNext"
     },
     "include": [
         "./src/**/*"
