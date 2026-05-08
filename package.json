@@ -1,6 +1,6 @@
 {
   "name": "@krivega/rpc-websockets",
-  "version": "10.1.0",
+  "version": "10.1.1",
   "description": "JSON-RPC 2.0 implementation over WebSockets for Node.js",
   "exports": {
     "browser": {
