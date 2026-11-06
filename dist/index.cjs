@@ -2,8 +2,8 @@
 
 var WebSocketImpl = require('ws');
 var eventemitter3 = require('eventemitter3');
+var crypto = require('crypto');
 var url = require('url');
-var uuid = require('uuid');
 
 function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
 
@@ -381,7 +381,7 @@ var Server = class extends eventemitter3.EventEmitter {
       const u = url__default.default.parse(request.url, true);
       const ns = u.pathname;
       if (u.query.socket_id) socket._id = u.query.socket_id;
-      else socket._id = uuid.v1();
+      else socket._id = crypto.randomUUID();
       socket["_authenticated"] = false;
       socket.on("error", (error) => this.emit("socket-error", socket, error));
       socket.on("close", () => {

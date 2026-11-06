@@ -1,7 +1,7 @@
 import WebSocketImpl, { WebSocketServer } from 'ws';
 import { EventEmitter } from 'eventemitter3';
+import { randomUUID } from 'crypto';
 import url from 'url';
-import { v1 } from 'uuid';
 
 // src/lib/client/websocket.ts
 function WebSocket(address, options) {
@@ -374,7 +374,7 @@ var Server = class extends EventEmitter {
       const u = url.parse(request.url, true);
       const ns = u.pathname;
       if (u.query.socket_id) socket._id = u.query.socket_id;
-      else socket._id = v1();
+      else socket._id = randomUUID();
       socket["_authenticated"] = false;
       socket.on("error", (error) => this.emit("socket-error", socket, error));
       socket.on("close", () => {

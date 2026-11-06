@@ -5,9 +5,9 @@
 
 "use strict"
 
+import { randomUUID } from "node:crypto"
 import { EventEmitter } from "eventemitter3"
 import url from "node:url"
-import { v1 as uuidv1 } from "uuid"
 import NodeWebSocket, { WebSocketServer } from "ws"
 
 import { DataPack, DefaultDataPack } from "./utils.js"
@@ -109,7 +109,7 @@ export class Server extends EventEmitter
             const ns = u.pathname
 
             if (u.query.socket_id) socket._id = u.query.socket_id as string
-            else socket._id = uuidv1()
+            else socket._id = randomUUID()
 
             // unauthenticated by default
             socket["_authenticated"] = false
