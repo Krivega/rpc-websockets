@@ -111,6 +111,7 @@ declare class CommonClient extends EventEmitter {
     private max_reconnects;
     private rest_options;
     private current_reconnects;
+    private closed_manually;
     private generate_request_id;
     private socket;
     private webSocketFactory;

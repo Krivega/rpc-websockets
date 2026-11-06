@@ -49,6 +49,7 @@ export class CommonClient extends EventEmitter
     private rest_options: IWSClientAdditionalOptions &
     NodeWebSocket.ClientOptions
     private current_reconnects: number
+    private closed_manually: boolean
     private generate_request_id: (
     method: string,
     params: object | Array<any>
@@ -100,6 +101,7 @@ export class CommonClient extends EventEmitter
         this.max_reconnects = max_reconnects
         this.rest_options = rest_options
         this.current_reconnects = 0
+        this.closed_manually = false
         this.generate_request_id = generate_request_id || (() => typeof this.rpc_id === "number"
             ? ++this.rpc_id
             : Number(this.rpc_id) + 1)
@@ -125,6 +127,8 @@ export class CommonClient extends EventEmitter
     connect()
     {
         if (this.socket) return
+
+        this.closed_manually = false
 
         this._connect(this.address, {
             autoconnect: this.autoconnect,
@@ -302,6 +306,11 @@ export class CommonClient extends EventEmitter
    */
     close(code?: number, data?: string)
     {
+        // Closing a CONNECTING socket emits code 1006, which must not schedule a reconnect.
+        this.closed_manually = true
+        clearTimeout(this.reconnect_timer_id)
+        this.reconnect_timer_id = undefined
+
         if (this.socket) this.socket.close(code || 1000, data)
     }
 
@@ -375,7 +384,7 @@ export class CommonClient extends EventEmitter
    */
     willReconnect()
     {
-        return this.reconnect &&
+        return !this.closed_manually && this.reconnect &&
             (this.max_reconnects === 0 || this.current_reconnects < this.max_reconnects)
     }
 
@@ -483,7 +492,7 @@ export class CommonClient extends EventEmitter
             this.ready = false
             this.socket = undefined
 
-            if (code === 1000) return
+            if (code === 1000 || this.closed_manually) return
 
             this.current_reconnects++
 

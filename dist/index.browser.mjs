@@ -80,6 +80,7 @@ var CommonClient = class extends EventEmitter {
   max_reconnects;
   rest_options;
   current_reconnects;
+  closed_manually;
   generate_request_id;
   socket;
   webSocketFactory;
@@ -114,6 +115,7 @@ var CommonClient = class extends EventEmitter {
     this.max_reconnects = max_reconnects;
     this.rest_options = rest_options;
     this.current_reconnects = 0;
+    this.closed_manually = false;
     this.generate_request_id = generate_request_id || (() => typeof this.rpc_id === "number" ? ++this.rpc_id : Number(this.rpc_id) + 1);
     if (!dataPack) this.dataPack = new DefaultDataPack();
     else this.dataPack = dataPack;
@@ -133,6 +135,7 @@ var CommonClient = class extends EventEmitter {
   */
   connect() {
     if (this.socket) return;
+    this.closed_manually = false;
     this._connect(this.address, {
       autoconnect: this.autoconnect,
       reconnect: this.reconnect,
@@ -258,6 +261,9 @@ var CommonClient = class extends EventEmitter {
   * @return {Undefined}
   */
   close(code, data) {
+    this.closed_manually = true;
+    clearTimeout(this.reconnect_timer_id);
+    this.reconnect_timer_id = void 0;
     if (this.socket) this.socket.close(code || 1e3, data);
   }
   /**
@@ -317,7 +323,7 @@ var CommonClient = class extends EventEmitter {
   * @return {Boolean} true if reconnection will be attempted
   */
   willReconnect() {
-    return this.reconnect && (this.max_reconnects === 0 || this.current_reconnects < this.max_reconnects);
+    return !this.closed_manually && this.reconnect && (this.max_reconnects === 0 || this.current_reconnects < this.max_reconnects);
   }
   /**
   * Connection/Message handler.
@@ -381,7 +387,7 @@ var CommonClient = class extends EventEmitter {
         setTimeout(() => this.emit("close", code, reason), 0);
       this.ready = false;
       this.socket = void 0;
-      if (code === 1e3) return;
+      if (code === 1e3 || this.closed_manually) return;
       this.current_reconnects++;
       if (this.reconnect && (this.max_reconnects > this.current_reconnects || this.max_reconnects === 0))
         this.reconnect_timer_id = setTimeout(
