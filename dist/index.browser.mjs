@@ -323,7 +323,7 @@ var CommonClient = class extends EventEmitter {
   * @return {Boolean} true if reconnection will be attempted
   */
   willReconnect() {
-    return this.reconnect && (this.max_reconnects === 0 || this.current_reconnects < this.max_reconnects);
+    return !this.closed_manually && this.reconnect && (this.max_reconnects === 0 || this.current_reconnects < this.max_reconnects);
   }
   /**
   * Connection/Message handler.

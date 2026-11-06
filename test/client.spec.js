@@ -879,7 +879,12 @@ describe("Client", function()
                 const reconnects = client.getCurrentReconnects()
 
                 client.close()
+
+                expect(client.willReconnect()).to.equal(false)
+
                 client.connect()
+
+                expect(client.willReconnect()).to.equal(true)
 
                 setTimeout(function()
                 {
@@ -888,6 +893,37 @@ describe("Client", function()
                     done()
                 }, 300)
             }, 10)
+        })
+
+        it("should report no reconnect after a manual close with a non-1000 code", function(done)
+        {
+            const client = new WebSocket("ws://" + host + ":" + port, {
+                reconnect_interval: 100
+            })
+
+            client.once("open", function()
+            {
+                expect(client.willReconnect()).to.equal(true)
+
+                client.close(4000)
+            })
+
+            client.once("close", function(code)
+            {
+                expect(code).to.equal(4000)
+                expect(client.willReconnect()).to.equal(false)
+                expect(client.isReconnecting()).to.equal(false)
+
+                client.connect()
+
+                expect(client.willReconnect()).to.equal(true)
+
+                client.once("open", function()
+                {
+                    client.close()
+                    done()
+                })
+            })
         })
     })
 

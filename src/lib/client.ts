@@ -384,7 +384,7 @@ export class CommonClient extends EventEmitter
    */
     willReconnect()
     {
-        return this.reconnect &&
+        return !this.closed_manually && this.reconnect &&
             (this.max_reconnects === 0 || this.current_reconnects < this.max_reconnects)
     }
 
