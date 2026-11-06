@@ -807,6 +807,88 @@ describe("Client", function()
                 done()
             })
         })
+
+        it("should cancel a pending reconnect", function(done)
+        {
+            const client = new WebSocket("ws://invalid:1234", {
+                reconnect_interval: 100,
+                max_reconnects: 0
+            })
+
+            const waitReconnecting = setInterval(function()
+            {
+                if (!client.isReconnecting()) return
+
+                clearInterval(waitReconnecting)
+
+                const reconnects = client.getCurrentReconnects()
+
+                client.close()
+
+                expect(client.isReconnecting()).to.equal(false)
+
+                setTimeout(function()
+                {
+                    expect(client.getCurrentReconnects()).to.equal(reconnects)
+                    expect(client.isReconnecting()).to.equal(false)
+                    done()
+                }, 300)
+            }, 10)
+        })
+
+        it("should not reconnect after closing a connecting socket", function(done)
+        {
+            const client = new WebSocket("ws://" + host + ":" + port, {
+                reconnect_interval: 100
+            })
+
+            let opened = false
+
+            client.on("open", function()
+            {
+                opened = true
+            })
+
+            client.close()
+
+            setTimeout(function()
+            {
+                expect(opened).to.equal(false)
+                expect(client.getCurrentReconnects()).to.equal(0)
+                expect(client.isReconnecting()).to.equal(false)
+                done()
+            }, 300)
+        })
+
+        it("should reconnect again after connect() following close()", function(done)
+        {
+            const client = new WebSocket("ws://invalid:1234", {
+                autoconnect: false,
+                reconnect_interval: 100,
+                max_reconnects: 0
+            })
+
+            client.connect()
+
+            const waitReconnecting = setInterval(function()
+            {
+                if (!client.isReconnecting()) return
+
+                clearInterval(waitReconnecting)
+
+                const reconnects = client.getCurrentReconnects()
+
+                client.close()
+                client.connect()
+
+                setTimeout(function()
+                {
+                    expect(client.getCurrentReconnects()).to.be.above(reconnects)
+                    client.close()
+                    done()
+                }, 300)
+            }, 10)
+        })
     })
 
     describe("reconnection state methods", function()
