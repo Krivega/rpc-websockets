@@ -323,6 +323,11 @@ export class CommonClient extends EventEmitter
     setAutoReconnect(reconnect: boolean)
     {
         this.reconnect = reconnect
+        if (!reconnect)
+        {
+            clearTimeout(this.reconnect_timer_id)
+            this.reconnect_timer_id = undefined
+        }
     }
 
     /**
@@ -402,6 +407,7 @@ export class CommonClient extends EventEmitter
     )
     {
         clearTimeout(this.reconnect_timer_id)
+        this.reconnect_timer_id = undefined
         this.socket = this.webSocketFactory(address, options)
 
         this.socket.addEventListener("open", () =>

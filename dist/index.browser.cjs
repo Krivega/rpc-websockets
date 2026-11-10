@@ -276,6 +276,10 @@ var CommonClient = class extends eventemitter3.EventEmitter {
   */
   setAutoReconnect(reconnect) {
     this.reconnect = reconnect;
+    if (!reconnect) {
+      clearTimeout(this.reconnect_timer_id);
+      this.reconnect_timer_id = void 0;
+    }
   }
   /**
   * Set the interval between reconnection attempts.
@@ -337,6 +341,7 @@ var CommonClient = class extends eventemitter3.EventEmitter {
   */
   _connect(address, options) {
     clearTimeout(this.reconnect_timer_id);
+    this.reconnect_timer_id = void 0;
     this.socket = this.webSocketFactory(address, options);
     this.socket.addEventListener("open", () => {
       this.ready = true;
